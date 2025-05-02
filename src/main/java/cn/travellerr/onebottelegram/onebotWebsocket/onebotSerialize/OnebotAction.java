@@ -235,7 +235,9 @@ public class OnebotAction {
 
             // 如果找不到消息，返回空数组
             if (messages.isEmpty()) {
-                object.set("data", messagesArray);
+                JSONObject data = new JSONObject();
+                data.set("messages", messagesArray);
+                object.set("data", data);
                 return new TextMessage(object.toString());
             }
 
