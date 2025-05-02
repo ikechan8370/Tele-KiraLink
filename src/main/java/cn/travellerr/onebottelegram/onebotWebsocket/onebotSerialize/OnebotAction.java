@@ -268,7 +268,7 @@ public class OnebotAction {
                 messagesArray.add(msg);
             }
             JSONObject data = new JSONObject();
-            data.set("messages", messagesArray)
+            data.set("messages", messagesArray);
             object.set("data", data);
             log.info("发送历史消息至 Onebot --> 共 {} 条", messagesArray.size());
             return new TextMessage(object.toString());
