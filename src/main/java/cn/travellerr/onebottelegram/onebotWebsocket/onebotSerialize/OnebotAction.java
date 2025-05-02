@@ -142,6 +142,11 @@ public class OnebotAction {
                 JSONObject obj = new JSONObject(new Data(echo, true)).set("message", avatarId);
                 session.sendMessage(new TextMessage(obj.toString()));
                 break;
+            case "get_group_msg_history":
+                groupId = -params.getLong("group_id");
+                long messageId = params.getInt("message_id", params.getInt("message_seq"));
+                int count = params.getInt("count", 20);
+                session.sendMessage(getGroupMsgHistory(echo, groupId, messageId, count));
             default:
                 log.error("未知的 OneBot 消息: {}", action);
                 session.sendMessage(new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", "")).set("data", null).toString()));
@@ -199,6 +204,85 @@ public class OnebotAction {
         return new TextMessage(new JSONObject(new Data(echo, "", 0, "ok", "")).set("data", msg).toString());
 
     }
+
+    private static WebSocketMessage<?> getGroupMsgHistory(int echo, long groupId, long messageId, int count) {
+        JSONObject object = new JSONObject(new Data(echo));
+        JSONArray messagesArray = new JSONArray();
+
+        try {
+            // 准备查询参数
+            Map<String, Object> params = new HashMap<>();
+            params.put("contact", groupId);
+
+            // 如果messageId为0，则获取最新的消息
+            String hql;
+            if (messageId == 0) {
+                hql = "FROM Message WHERE contactId = :contact ORDER BY messageId DESC";
+            } else {
+                // 否则获取指定消息ID之前的消息
+                params.put("messageId", messageId);
+                hql = "FROM Message WHERE contactId = :contact AND messageId < :messageId ORDER BY messageId DESC";
+            }
+
+            // 查询历史消息，限制请求的消息数量
+            // 确保count是一个合理的值，默认为20条，最少1条
+            int limitCount = count <= 0 ? 20 : count;
+
+            List<cn.travellerr.onebottelegram.hibernate.entity.Message> messages =
+                    HibernateFactory.selectListByHql(
+                            cn.travellerr.onebottelegram.hibernate.entity.Message.class,
+                            hql,
+                            params
+                    ).stream()
+                    .limit(limitCount)
+                    .toList();
+
+            // 如果找不到消息，返回空数组
+            if (messages.isEmpty()) {
+                object.set("data", messagesArray);
+                return new TextMessage(object.toString());
+            }
+
+            // 处理消息列表
+            for (cn.travellerr.onebottelegram.hibernate.entity.Message message : messages) {
+                JSONObject msg = message.getMessage();
+
+                // 移除不需要的字段
+                msg.remove("self_id");
+                msg.remove("post_type");
+                msg.remove("sub_type");
+                msg.remove("font");
+                msg.remove("raw_message");
+                msg.remove("user_id");
+
+                try {
+                    msg.remove("anonymous");
+                    msg.remove("group_id");
+                } catch (Exception ignored) {
+                }
+
+                // 确保有message_seq字段
+                if (!msg.containsKey("message_seq")) {
+                    msg.set("message_seq", msg.get("message_id"));
+                }
+
+                // 添加real_id字段
+                msg.set("real_id", Optional.ofNullable(msg.get("message_id")).orElse(msg.get("message_seq")));
+
+                // 将消息添加到数组
+                messagesArray.add(msg);
+            }
+
+            object.set("data", messagesArray);
+            log.info("发送历史消息至 Onebot --> 共 {} 条", messagesArray.size());
+            return new TextMessage(object.toString());
+        } catch (Exception e) {
+            log.error("获取群历史消息失败", e);
+            return new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", "获取历史消息失败"))
+                    .set("data", null).toString());
+        }
+    }
+
 
     private static WebSocketMessage<?> setGroupBan(long groupId, long userId, int duration) {
         BaseResponse response;
