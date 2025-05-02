@@ -267,8 +267,9 @@ public class OnebotAction {
                 // 将消息添加到数组
                 messagesArray.add(msg);
             }
-
-            object.set("data", messagesArray);
+            JSONObject data = new JSONObject();
+            data.set("messages", messagesArray)
+            object.set("data", data);
             log.info("发送历史消息至 Onebot --> 共 {} 条", messagesArray.size());
             return new TextMessage(object.toString());
         } catch (Exception e) {
