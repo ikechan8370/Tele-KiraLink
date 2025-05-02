@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Data
@@ -110,11 +111,16 @@ public class Group {
         if (membersUserNameList!= null && membersUserNameList.contains(member)) {
             return;
         }
-        membersUserNameList.add(member);
+        if (membersUserNameList != null) {
+            membersUserNameList.add(member);
+        }
         System.out.println("new member was found: " + member);
-        this.memberUserNames = membersUserNameList.stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(","));
+        if (membersUserNameList != null) {
+            this.memberUserNames = membersUserNameList.stream()
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(Collectors.joining(","));
+        }
 
         HibernateFactory.merge(this);
     }
