@@ -185,12 +185,12 @@ public class TelegramToOnebot implements ApplicationRunner {
                 }
 
                 Sender groupSender = new Sender(fromId, username, firstName, "unknown", 0, "虚拟地区", "0", "member", "");
-                GroupMessage groupMessage = new GroupMessage(System.currentTimeMillis(), TelegramApi.getMeResponse.user().id(), "message", "group", "normal", update.message().messageId(), -update.message().chat().id(), fromId, null, realMessage, 0, groupSender);
+                GroupMessage groupMessage = new GroupMessage(System.currentTimeMillis(), TelegramApi.getMeResponse.user().id(), "message", "group", "normal", update.message().messageId(), update.message().messageId(), -update.message().chat().id(), fromId, null, realMessage, 0, groupSender);
 
                 object = new JSONObject(groupMessage);
             } else {
                 Sender sender = new Sender(fromId, username, firstName, "unknown", 0, null, null, null, null);
-                PrivateMessage privateMessage = new PrivateMessage(System.currentTimeMillis(), TelegramApi.getMeResponse.user().id(), "message", "private", "friend", update.message().messageId(), fromId, realMessage, 0, sender);
+                PrivateMessage privateMessage = new PrivateMessage(System.currentTimeMillis(), TelegramApi.getMeResponse.user().id(), "message", "private", "friend", update.message().messageId(), update.message().messageId(), fromId, realMessage, 0, sender);
                 object = new JSONObject(privateMessage);
             }
 
