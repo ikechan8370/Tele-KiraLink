@@ -49,6 +49,7 @@ public class TelegramToOnebot implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(TelegramToOnebot.class);
 
     public static void forwardToOnebot(Update update) {
+        System.out.println(update.toString());
         if (update.message() != null&&(update.message().text() != null || update.message().photo() != null)) {
 
             messageIdToChatId.put(update.message().messageId(), update.message().chat().id());
@@ -129,9 +130,13 @@ public class TelegramToOnebot implements ApplicationRunner {
                         }
                         return;
                     }
-                    username = update.message().senderChat().username();
+                    if (null != update.message().senderChat().username()) {
+                        username = update.message().senderChat().username();
+                    }
+                    if (null != update.message().senderChat().title()) {
+                        firstName = update.message().senderChat().title();
+                    }
                     fromId = Math.abs(update.message().senderChat().id());
-                    firstName = update.message().senderChat().title();
                 }
 
                 group = HibernateFactory.selectOne(Group.class, update.message().chat().id());
