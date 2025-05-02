@@ -25,10 +25,7 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static org.reflections.Reflections.log;
 
@@ -72,7 +69,7 @@ public class OnebotAction {
                 session.sendMessage(getGroupMemberInfo(echo, groupId, userId));
                 break;
             case "get_msg":
-                msgId = params.getInt("message_id");
+                msgId = params.getInt("message_id", params.getInt("message_seq"));
                 session.sendMessage(getMsg(echo, msgId));
                 break;
             case "set_group_ban":
@@ -82,7 +79,7 @@ public class OnebotAction {
                 session.sendMessage(setGroupBan(groupId, userId, duration));
                 break;
             case "delete_msg":
-                msgId = params.getInt("message_id");
+                msgId = params.getInt("message_id", params.getInt("message_seq"));
                 session.sendMessage(deleteMessage(echo, msgId));
                 break;
             case "send_group_msg":
@@ -174,7 +171,10 @@ public class OnebotAction {
            msg.remove("group_id");
         } catch (Exception ignored) {
         }
-        msg.set("real_id", msg.get("message_id"));
+        if (!msg.containsKey("message_seq")) {
+            msg.set("message_seq", msg.get("message_id"));
+        }
+        msg.set("real_id", Optional.ofNullable(msg.get("message_id")).orElse(msg.get("message_seq")));
         return new TextMessage(new JSONObject(new Data(echo, "", 0, "ok", "")).set("data", msg).toString());
 
     }
@@ -356,15 +356,16 @@ public class OnebotAction {
                     sb.append(message);
                     break;
                 case "image":
-                    if (msg.getJSONObject("data").getStr("file").startsWith("file://")) {
-                        File file = new File(msg.getJSONObject("data").getStr("file").substring(7));
+                    String fileSource = msg.getJSONObject("data").getStr("file");
+                    if (fileSource.startsWith("file://")) {
+                        File file = new File(fileSource.substring(7));
                         photo = new SendPhoto(chatId, file);
-                    } else if(msg.getJSONObject("data").getStr("file").startsWith("base64://")) {
-                        byte[] bytes = Base64.getDecoder().decode(msg.getJSONObject("data").getStr("file").substring(9));
+                    } else if (fileSource.startsWith("base64://")) {
+                        byte[] bytes = Base64.getDecoder().decode(fileSource.substring(9));
                         photo = new SendPhoto(chatId, bytes);
-                    }
-
-                    else {
+                    } else if (fileSource.startsWith("http://") || fileSource.startsWith("https://")) {
+                        photo = new SendPhoto(chatId, fileSource);
+                    } else {
                         sb.append("[图片消息, 暂不支持传输]");
                     }
                     break;
