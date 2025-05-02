@@ -146,6 +146,7 @@ public class OnebotAction {
                 long messageId = params.getInt("message_id", params.getInt("message_seq"));
                 int count = params.getInt("count", 20);
                 session.sendMessage(getGroupMsgHistory(echo, groupId, messageId, count));
+                break;
             default:
                 log.error("未知的 OneBot 消息: {}", action);
                 session.sendMessage(new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", "")).set("data", null).toString()));
