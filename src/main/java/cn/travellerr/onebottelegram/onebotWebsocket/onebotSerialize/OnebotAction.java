@@ -69,8 +69,9 @@ public class OnebotAction {
                 session.sendMessage(getGroupMemberInfo(echo, groupId, userId));
                 break;
             case "get_msg":
+                long contact = params.getLong("group_id", params.getLong("user_id"));
                 msgId = params.getInt("message_id", params.getInt("message_seq"));
-                session.sendMessage(getMsg(echo, msgId));
+                session.sendMessage(getMsg(echo, msgId, contact));
                 break;
             case "set_group_ban":
                 groupId = -params.getLong("group_id");
@@ -151,14 +152,34 @@ public class OnebotAction {
         }
     }
 
-    private static WebSocketMessage<?> getMsg(int echo, int msgId) {
+    private static WebSocketMessage<?> getMsg(int echo, int msgId, long contact) {
         JSONObject msg;
         try {
-            msg = HibernateFactory.selectOne(cn.travellerr.onebottelegram.hibernate.entity.Message.class, msgId)
-                    .getMessage();
+            if (msgId == 0) {
+                // 当 msgId 为 0 时，获取该联系人的最新消息
+                Map<String, Object> params = new HashMap<>();
+                params.put("contact", contact);
+
+                List<cn.travellerr.onebottelegram.hibernate.entity.Message> messages = HibernateFactory.selectListByHql(
+                        cn.travellerr.onebottelegram.hibernate.entity.Message.class,
+                        "FROM Message WHERE contactId = :contact ORDER BY messageId DESC",
+                        params
+                );
+
+                if (messages.isEmpty()) {
+                    return new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", "找不到该联系人的消息"))
+                            .set("data", null).toString());
+                }
+
+                msg = messages.get(0).getMessage();
+            } else {
+                msg = HibernateFactory.selectOne(cn.travellerr.onebottelegram.hibernate.entity.Message.class, msgId)
+                        .getMessage();
+            }
         } catch (NullPointerException e) {
             log.error("获取消息失败", e.getMessage());
-            return new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", "")).set("data", null).toString());
+            return new TextMessage(new JSONObject(new Data(echo, "", 1404, "failed", ""))
+                    .set("data", null).toString());
         }
         msg.remove("self_id");
         msg.remove("post_type");
