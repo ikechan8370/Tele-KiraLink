@@ -23,6 +23,9 @@ data class GroupMessage(
     @SerialName("message_id")
     val message_id: Int,
 
+    @SerialName("message_seq")
+    val message_seq: Int,
+
     @SerialName("group_id")
     val group_id: Long,
 
@@ -62,6 +65,9 @@ data class PrivateMessage(
 
     @SerialName("message_id")
     val message_id: Int,
+
+    @SerialName("message_seq")
+    val message_seq: Int,
 
     @SerialName("user_id")
     val user_id: Long,
